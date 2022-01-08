@@ -20,5 +20,9 @@ from text_detection import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('textDetection', views.textDetection)
+    path('textDetection', views.textDetection),
+    path('file/insert', views.file_insert),
+    path('file/mutiInsert', views.muti_file_insert),
+    path('file/detect', views.file_detect),
+    path('detect/keyword', views.key_detect)
 ]

@@ -6,12 +6,16 @@ from concurrent.futures.thread import ThreadPoolExecutor
 
 import gensim
 from django.http import JsonResponse
+from py2neo import Graph
 
+from text_detection.algorithm.keyWordDetect import key_word_detect
 from text_detection.algorithm.process import document_analysis
+from text_detection.neo4j.file_detect import detect
+from text_detection.neo4j.file_insert import insert
 
 print('Initializing Start...')
 time_start = time.time()
-model = gensim.models.Word2Vec.load('F:/GitRepos/text-detection-python/text_detection/model/wiki.zh.text.model')
+model = gensim.models.Word2Vec.load('./text_detection/model/wiki.zh.text.model')
 print(model.get_latest_training_loss())
 time_end = time.time()
 print('Initializing time cost = %fs' % (time_end - time_start))
@@ -37,7 +41,6 @@ def textDetection(request):
         for key in res:
             result[key] = res[key]
 
-
     print(result)
     return JsonResponse(result, safe=False)
 
@@ -52,3 +55,48 @@ def thread_process(filePath_input, filePath_rules, key):
         match_list_total.append(match_list)
     result[key] = match_list_total
     return result
+
+
+def file_insert(request):
+    json_result = json.loads(request.body)
+    filePath = json_result.get("filePath")
+    type = json_result.get("type")
+    fileName = json_result.get("fileName")
+    print(filePath)
+    print(fileName)
+    print(type)
+    g = Graph('http://localhost:7474', user='neo4j', password='123')
+    info = {'filePath': filePath, 'fileName': fileName, 'type': type}
+    insert(g, info)
+    return JsonResponse("ok", safe=False)
+
+
+def muti_file_insert(request):
+    json_result = json.loads(request.body)
+    sysRuleMap = json_result.get("sysRuleMap")
+    g = Graph('http://localhost:7474', user='neo4j', password='123')
+    for key, value in sysRuleMap.items():
+        for file in value:
+            fileName = file[file.rfind('/') + 1:]
+            info = {'filePath': file, 'fileName': fileName, 'type': key}
+            print(info)
+            insert(g, info)
+    return JsonResponse("ok", safe=False)
+
+
+def file_detect(request):
+    json_result = json.loads(request.body)
+    file_path = json_result.get("filePath")
+    g = Graph('http://localhost:7474', user='neo4j', password='123')
+    result = detect(file_path, g)
+    return JsonResponse(result, safe=False)
+
+
+def key_detect(request):
+    json_result = json.loads(request.body)
+    file_path = json_result.get("filePath")
+    keyWords = json_result.get("keywords")
+    print(keyWords)
+    key_words_spec = key_word_detect(file_path, keyWords)
+    result = {'keyWords': key_words_spec}
+    return JsonResponse(result, safe=False)

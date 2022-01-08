@@ -1,2 +1,2 @@
-text_detection/model/*
+text_detection/model/
 db.sqlite3
